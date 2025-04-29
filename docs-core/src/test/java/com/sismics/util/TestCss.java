@@ -17,4 +17,16 @@ public class TestCss {
             .rule("font-family", "Comic Sans");
         System.out.println(selector);
     }
+    @Test
+    public void testBuildCssWithMultipleRules() {
+        Selector selector = new Selector("#header")
+                .rule("width", "100%")
+                .rule("height", "60px")
+                .rule("background-color", "#333")
+                .rule("color", "#fff")
+                .rule("text-align", "center");
+
+
+        System.out.println(selector.toString());
+    }
 }
