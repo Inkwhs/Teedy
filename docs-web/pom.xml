@@ -176,6 +176,13 @@
         </resources>
 
         <plugins>
+          
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-site-plugin</artifactId>
+              <version>3.7</version>
+          </plugin>
+          
           <plugin>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-maven-plugin</artifactId>
@@ -270,6 +277,14 @@
           </plugin>
         </plugins>
       </build>
+
+      <distributionManagement>
+      <site>
+      <id>local</id>
+      <url>file:${project.build.directory}/site</url>
+      </site>
+    </distributionManagement>
+    
     </profile>
   </profiles>
 </project>
