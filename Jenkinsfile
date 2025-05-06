@@ -3,7 +3,7 @@ pipeline {
 
 	environment {
 
-		DOCKER_HUB_CREDENTIALS = credentials('123')
+		DOCKER_HUB_CREDENTIALS = credentials('dockerhub_credentials')
 		// Docker Hub Repository's name
 		DOCKER_IMAGE = 'adonisky/teedy-app' // your Docker Hub user name and Repository's name
 		DOCKER_TAG = "${env.BUILD_NUMBER}" // use build number as tag
