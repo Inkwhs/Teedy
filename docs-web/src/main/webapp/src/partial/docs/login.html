@@ -74,8 +74,16 @@
             </div>
           </div>
 
-          <p class="text-center" ng-if="app.guest_login">&nbsp;</p>
+          <!-- 添加注册页面 -->
+          <div class="row" style="margin-top:20px">
+            <div class="col-md-12 text-center">
+              <button class="btn btn-link" ng-click="showRequestForm()">
+                register
+              </button>
+            </div>
+          </div>
 
+          <p class="text-center" ng-if="app.guest_login">&nbsp;</p>
           <button type="submit" class="btn btn-default btn-block" ng-if="app.guest_login" ng-click="loginAsGuest()">
             <span class="fas fa-user"></span> {{ 'login.login_as_guest' | translate }}
           </button>

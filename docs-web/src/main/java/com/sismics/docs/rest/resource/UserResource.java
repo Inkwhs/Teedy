@@ -46,11 +46,12 @@ import java.util.Set;
 
 /**
  * User REST resources.
- * 
+ *
  * @author jtremeaux
  */
 @Path("/user")
 public class UserResource extends BaseResource {
+
     /**
      * Creates a new user.
      *
@@ -85,7 +86,7 @@ public class UserResource extends BaseResource {
             throw new ForbiddenClientException();
         }
         checkBaseFunction(BaseFunction.ADMIN);
-        
+
         // Validate the input data
         username = ValidationUtil.validateLength(username, "username", 3, 50);
         ValidationUtil.validateUsername(username, "username");
@@ -93,7 +94,7 @@ public class UserResource extends BaseResource {
         email = ValidationUtil.validateLength(email, "email", 1, 100);
         Long storageQuota = ValidationUtil.validateLong(storageQuotaStr, "storage_quota");
         ValidationUtil.validateEmail(email, "email");
-        
+
         // Create the user
         User user = new User();
         user.setRoleId(Constants.DEFAULT_USER_ROLE);
@@ -114,7 +115,7 @@ public class UserResource extends BaseResource {
                 throw new ServerException("UnknownError", "Unknown server error", e);
             }
         }
-        
+
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
@@ -146,11 +147,11 @@ public class UserResource extends BaseResource {
         if (!authenticate() || principal.isGuest()) {
             throw new ForbiddenClientException();
         }
-        
+
         // Validate the input data
         password = ValidationUtil.validateLength(password, "password", 8, 50, true);
         email = ValidationUtil.validateLength(email, "email", 1, 100, true);
-        
+
         // Update the user
         UserDao userDao = new UserDao();
         User user = userDao.getActiveByUsername(principal.getName());
@@ -158,13 +159,13 @@ public class UserResource extends BaseResource {
             user.setEmail(email);
         }
         user = userDao.update(user, principal.getId());
-        
+
         // Change the password
         if (StringUtils.isNotBlank(password)) {
             user.setPassword(password);
             userDao.updatePassword(user, principal.getId());
         }
-        
+
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
@@ -206,11 +207,11 @@ public class UserResource extends BaseResource {
             throw new ForbiddenClientException();
         }
         checkBaseFunction(BaseFunction.ADMIN);
-        
+
         // Validate the input data
         password = ValidationUtil.validateLength(password, "password", 8, 50, true);
         email = ValidationUtil.validateLength(email, "email", 1, 100, true);
-        
+
         // Check if the user exists
         UserDao userDao = new UserDao();
         User user = userDao.getActiveByUsername(username);
@@ -243,13 +244,13 @@ public class UserResource extends BaseResource {
             }
         }
         user = userDao.update(user, principal.getId());
-        
+
         // Change the password
         if (StringUtils.isNotBlank(password)) {
             user.setPassword(password);
             userDao.updatePassword(user, principal.getId());
         }
-        
+
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
@@ -313,7 +314,7 @@ public class UserResource extends BaseResource {
             if (Strings.isNullOrEmpty(validationCodeStr)) {
                 throw new ClientException("ValidationCodeRequired", "An OTP validation code is required");
             }
-            
+
             // Check the validation code
             int validationCode = ValidationUtil.validateInteger(validationCodeStr, "code");
             GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator();
@@ -321,13 +322,13 @@ public class UserResource extends BaseResource {
                 throw new ForbiddenClientException();
             }
         }
-        
+
         // Get the remote IP
         String ip = request.getHeader("x-forwarded-for");
         if (Strings.isNullOrEmpty(ip)) {
             ip = request.getRemoteAddr();
         }
-        
+
         // Create a new session token
         AuthenticationTokenDao authenticationTokenDao = new AuthenticationTokenDao();
         AuthenticationToken authenticationToken = new AuthenticationToken()
@@ -336,7 +337,7 @@ public class UserResource extends BaseResource {
             .setIp(StringUtils.abbreviate(ip, 45))
             .setUserAgent(StringUtils.abbreviate(request.getHeader("user-agent"), 1000));
         String token = authenticationTokenDao.create(authenticationToken);
-        
+
         // Cleanup old session tokens
         authenticationTokenDao.deleteOldSessionToken(user.getId());
 
@@ -370,25 +371,25 @@ public class UserResource extends BaseResource {
 
         // Get the value of the session token
         String authToken = getAuthToken();
-        
+
         AuthenticationTokenDao authenticationTokenDao = new AuthenticationTokenDao();
         AuthenticationToken authenticationToken = null;
         if (authToken != null) {
             authenticationToken = authenticationTokenDao.get(authToken);
         }
-        
+
         // No token : nothing to do
         if (authenticationToken == null) {
             throw new ForbiddenClientException();
         }
-        
+
         // Deletes the server token
         try {
             authenticationTokenDao.delete(authToken);
         } catch (Exception e) {
             throw new ServerException("AuthenticationTokenError", "Error deleting the authentication token: " + authToken, e);
         }
-        
+
         // Deletes the client token in the HTTP response
         JsonObjectBuilder response = Json.createObjectBuilder();
         NewCookie cookie = new NewCookie(TokenBasedSecurityFilter.COOKIE_NAME, null, "/", null, 1, null, -1, new Date(1), false, false);
@@ -415,7 +416,7 @@ public class UserResource extends BaseResource {
         if (!authenticate()) {
             throw new ForbiddenClientException();
         }
-        
+
         // Ensure that the admin or guest users are not deleted
         if (hasBaseFunction(BaseFunction.ADMIN) || principal.isGuest()) {
             throw new ClientException("ForbiddenError", "This user cannot be deleted");
@@ -426,17 +427,17 @@ public class UserResource extends BaseResource {
         if (routeModelName != null) {
             throw new ClientException("UserUsedInRouteModel", routeModelName);
         }
-        
+
         // Find linked data
         DocumentDao documentDao = new DocumentDao();
         List<Document> documentList = documentDao.findByUserId(principal.getId());
         FileDao fileDao = new FileDao();
         List<File> fileList = fileDao.findByUserId(principal.getId());
-        
+
         // Delete the user
         UserDao userDao = new UserDao();
         userDao.delete(principal.getName(), principal.getId());
-        
+
         sendDeletionEvents(documentList, fileList);
 
         // Always return OK
@@ -444,7 +445,7 @@ public class UserResource extends BaseResource {
                 .add("status", "ok");
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Deletes a user.
      *
@@ -482,7 +483,7 @@ public class UserResource extends BaseResource {
         if (user == null) {
             throw new ClientException("UserNotFound", "The user does not exist");
         }
-        
+
         // Ensure that the admin user is not deleted
         RoleBaseFunctionDao roleBaseFunctionDao = new RoleBaseFunctionDao();
         Set<String> baseFunctionSet = roleBaseFunctionDao.findByRoleId(Sets.newHashSet(user.getRoleId()));
@@ -495,13 +496,13 @@ public class UserResource extends BaseResource {
         if (routeModelName != null) {
             throw new ClientException("UserUsedInRouteModel", routeModelName);
         }
-        
+
         // Find linked data
         DocumentDao documentDao = new DocumentDao();
         List<Document> documentList = documentDao.findByUserId(user.getId());
         FileDao fileDao = new FileDao();
         List<File> fileList = fileDao.findByUserId(user.getId());
-        
+
         // Delete the user
         userDao.delete(user.getUsername(), principal.getId());
 
@@ -553,7 +554,7 @@ public class UserResource extends BaseResource {
                 .add("status", "ok");
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Returns the information about the connected user.
      *
@@ -592,7 +593,7 @@ public class UserResource extends BaseResource {
             String authToken = getAuthToken();
             AuthenticationTokenDao authenticationTokenDao = new AuthenticationTokenDao();
             authenticationTokenDao.updateLastConnectionDate(authToken);
-            
+
             // Build the response
             response.add("anonymous", false);
             UserDao userDao = new UserDao();
@@ -601,7 +602,7 @@ public class UserResource extends BaseResource {
             List<GroupDto> groupDtoList = groupDao.findByCriteria(new GroupCriteria()
                     .setUserId(user.getId())
                     .setRecursive(true), null);
-            
+
             response.add("username", user.getUsername())
                     .add("email", user.getEmail())
                     .add("storage_quota", user.getStorageQuota())
@@ -614,18 +615,18 @@ public class UserResource extends BaseResource {
             for (String baseFunction : ((UserPrincipal) principal).getBaseFunctionSet()) {
                 baseFunctions.add(baseFunction);
             }
-            
+
             // Groups
             JsonArrayBuilder groups = Json.createArrayBuilder();
             for (GroupDto groupDto : groupDtoList) {
                 groups.add(groupDto.getName());
             }
-            
+
             response.add("base_functions", baseFunctions)
                     .add("groups", groups)
                     .add("is_default_password", hasBaseFunction(BaseFunction.ADMIN) && Constants.DEFAULT_ADMIN_PASSWORD.equals(user.getPassword()));
         }
-        
+
         return Response.ok().entity(response.build()).build();
     }
 
@@ -658,13 +659,13 @@ public class UserResource extends BaseResource {
         if (!authenticate()) {
             throw new ForbiddenClientException();
         }
-        
+
         UserDao userDao = new UserDao();
         User user = userDao.getActiveByUsername(username);
         if (user == null) {
             throw new ClientException("UserNotFound", "The user does not exist");
         }
-        
+
         // Groups
         GroupDao groupDao = new GroupDao();
         List<GroupDto> groupDtoList = groupDao.findByCriteria(
@@ -674,7 +675,7 @@ public class UserResource extends BaseResource {
         for (GroupDto groupDto : groupDtoList) {
             groups.add(groupDto.getName());
         }
-        
+
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("username", user.getUsername())
                 .add("groups", groups)
@@ -722,7 +723,7 @@ public class UserResource extends BaseResource {
         if (!authenticate()) {
             throw new ForbiddenClientException();
         }
-        
+
         JsonArrayBuilder users = Json.createArrayBuilder();
         SortCriteria sortCriteria = new SortCriteria(sortColumn, asc);
 
@@ -735,7 +736,7 @@ public class UserResource extends BaseResource {
                 groupId = group.getId();
             }
         }
-        
+
         UserDao userDao = new UserDao();
         List<UserDto> userDtoList = userDao.findByCriteria(new UserCriteria().setGroupId(groupId), sortCriteria);
         for (UserDto userDto : userDtoList) {
@@ -749,12 +750,12 @@ public class UserResource extends BaseResource {
                     .add("create_date", userDto.getCreateTimestamp())
                     .add("disabled", userDto.getDisableTimestamp() != null));
         }
-        
+
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("users", users);
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Returns all active sessions.
      *
@@ -780,10 +781,10 @@ public class UserResource extends BaseResource {
         if (!authenticate()) {
             throw new ForbiddenClientException();
         }
-        
+
         // Get the value of the session token
         String authToken = getAuthToken();
-        
+
         JsonArrayBuilder sessions = Json.createArrayBuilder();
 
         // The guest user cannot see other sessions
@@ -801,12 +802,12 @@ public class UserResource extends BaseResource {
                 sessions.add(session);
             }
         }
-        
+
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("sessions", sessions);
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Deletes all active sessions except the one used for this request.
      *
@@ -830,11 +831,11 @@ public class UserResource extends BaseResource {
 
         // Get the value of the session token
         String authToken = getAuthToken();
-        
+
         // Remove other tokens
         AuthenticationTokenDao authenticationTokenDao = new AuthenticationTokenDao();
         authenticationTokenDao.deleteByUserId(principal.getId(), authToken);
-        
+
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
@@ -873,7 +874,7 @@ public class UserResource extends BaseResource {
                 .add("status", "ok");
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Enable time-based one-time password.
      *
@@ -895,17 +896,17 @@ public class UserResource extends BaseResource {
         if (!authenticate() || principal.isGuest()) {
             throw new ForbiddenClientException();
         }
-        
+
         // Create a new TOTP key
         GoogleAuthenticator gAuth = new GoogleAuthenticator();
         final GoogleAuthenticatorKey key = gAuth.createCredentials();
-        
+
         // Save it
         UserDao userDao = new UserDao();
         User user = userDao.getActiveByUsername(principal.getName());
         user.setTotpKey(key.getKey());
         userDao.update(user, principal.getId());
-        
+
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("secret", key.getKey());
         return Response.ok().entity(response.build()).build();
@@ -951,7 +952,7 @@ public class UserResource extends BaseResource {
                 .add("status", "ok");
         return Response.ok().entity(response.build()).build();
     }
-    
+
     /**
      * Disable time-based one-time password for the current user.
      *
@@ -974,7 +975,7 @@ public class UserResource extends BaseResource {
         if (!authenticate() || principal.isGuest()) {
             throw new ForbiddenClientException();
         }
-        
+
         // Validate the input data
         password = ValidationUtil.validateLength(password, "password", 1, 100, false);
 
@@ -984,11 +985,11 @@ public class UserResource extends BaseResource {
         if (user == null) {
             throw new ForbiddenClientException();
         }
-        
+
         // Remove the TOTP key
         user.setTotpKey(null);
         userDao.update(user, principal.getId());
-        
+
         // Always return OK
         JsonObjectBuilder response = Json.createObjectBuilder()
                 .add("status", "ok");
