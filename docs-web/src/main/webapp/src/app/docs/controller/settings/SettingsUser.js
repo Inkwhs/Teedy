@@ -12,6 +12,9 @@ angular.module('docs').controller('SettingsUser', function($scope, $state, Resta
       sort_column: 1,
       asc: true
     }).then(function(data) {
+      data.users.forEach(function(u) {
+        u.disabled = (u.getDisableTimestamp() != null);
+      });
       $scope.users = data.users;
     });
   };

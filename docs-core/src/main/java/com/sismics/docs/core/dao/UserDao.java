@@ -394,4 +394,21 @@ public class UserDao {
         query.setParameter("toDate", toDate.toDate());
         return ((Number) query.getSingleResult()).longValue();
     }
+
+    /**
+     * Gets an user by its username.
+     *
+     * @param username User's username
+     * @return User
+     */
+    public User getUserByUsername(String username) {
+        EntityManager em = ThreadLocalContext.get().getEntityManager();
+        try {
+            Query q = em.createQuery("select u from User u where u.username = :username");
+            q.setParameter("username", username);
+            return (User) q.getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
 }

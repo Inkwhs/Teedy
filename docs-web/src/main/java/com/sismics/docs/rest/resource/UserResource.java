@@ -1143,4 +1143,75 @@ public class UserResource extends BaseResource {
         }
     }
 
+    //user/register
+    @POST
+    @Path("register")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response registerRequest(
+            @FormParam("username") String username,
+            @FormParam("password") String password,
+            @FormParam("email") String email) {
+
+        // Validate the input data
+        username = ValidationUtil.validateLength(username, "username", 3, 50);
+        ValidationUtil.validateUsername(username, "username");
+        password = ValidationUtil.validateLength(password, "password", 8, 50);
+        email = ValidationUtil.validateLength(email, "email", 1, 100);
+        ValidationUtil.validateEmail(email, "email");
+
+        // Create the user
+        User user = new User();
+        user.setRoleId(Constants.DEFAULT_USER_ROLE);
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setEmail(email);
+        user.setStorageQuota(1000L);
+        user.setOnboarding(true);
+        user.setDisableDate(new Date());  // 将账户设为已禁用状态表示待审批)
+
+        // Create the user
+        UserDao userDao = new UserDao();
+        try {
+            userDao.create(user, null);
+        } catch (Exception e) {
+            if ("AlreadyExistingUsername".equals(e.getMessage())) {
+                throw new ClientException("AlreadyExistingUsername", "Login already used", e);
+            } else {
+                throw new ServerException("UnknownError", "Unknown server error", e);
+            }
+        }
+
+        // Always return OK
+        JsonObjectBuilder response = Json.createObjectBuilder()
+                .add("status", "ok");
+        return Response.ok().entity(response.build()).build();
+    }
+
+    @POST
+    @Path("{username}/admit")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response admitUser(@PathParam("username") String username) {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);  // 仅管理员可调用
+
+        UserDao userDao = new UserDao();
+
+        User user = userDao.getUserByUsername(username);
+
+        if (user == null) {
+            throw new ClientException("UserNotFound", "用户不存在");
+        }
+
+        //取消禁用
+        if (user.getDisableDate() != null) {
+            user.setDisableDate(null);
+            userDao.update(user, principal.getId());
+        }
+        // return ok
+        JsonObjectBuilder resp = Json.createObjectBuilder().add("status", "ok");
+        return Response.ok(resp.build()).build();
+    }
+
 }

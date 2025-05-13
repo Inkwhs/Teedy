@@ -4,6 +4,14 @@
   <h2 ng-show="isEdit()" translate="settings.user.edit.edit_user_title" translate-values="{ username: user.username }"></h2>
   <h2 ng-show="!isEdit()" translate="settings.user.edit.add_user_title"></h2>
 
+  <div class="form-group" ng-if="user.disabled">
+    <div class="col-sm-offset-2 col-sm-10">
+      <button type="button" class="btn btn-success" ng-click="approveUser()">
+        <span class="fas fa-user-check"></span>approve
+      </button>
+    </div>
+  </div>
+
   <form class="form-horizontal" name="editUserForm" novalidate autocomplete="off">
     <div class="form-group" ng-class="{ 'has-error': !editUserForm.userUsername.$valid && editUserForm.$dirty, success: editUserForm.userUsername.$valid }">
       <label class="col-sm-2 control-label" for="inputUserUsername">{{ 'settings.user.edit.username' | translate }}</label>
