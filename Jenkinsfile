@@ -1,8 +1,8 @@
 pipeline {
 agent any
 environment {
-DEPLOYMENT_NAME = "deployment"
-CONTAINER_NAME = "hello-node"
+DEPLOYMENT_NAME = "hello-node"
+CONTAINER_NAME = "docs"
 IMAGE_NAME = "adonisky/teedy-app"
 }
 stages {
