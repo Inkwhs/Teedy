@@ -1187,31 +1187,5 @@ public class UserResource extends BaseResource {
         return Response.ok().entity(response.build()).build();
     }
 
-    @POST
-    @Path("{username}/admit")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response admitUser(@PathParam("username") String username) {
-        if (!authenticate()) {
-            throw new ForbiddenClientException();
-        }
-        checkBaseFunction(BaseFunction.ADMIN);  // 仅管理员可调用
-
-        UserDao userDao = new UserDao();
-
-        User user = userDao.getUserByUsername(username);
-
-        if (user == null) {
-            throw new ClientException("UserNotFound", "用户不存在");
-        }
-
-        //取消禁用
-        if (user.getDisableDate() != null) {
-            user.setDisableDate(null);
-            userDao.update(user, principal.getId());
-        }
-        // return ok
-        JsonObjectBuilder resp = Json.createObjectBuilder().add("status", "ok");
-        return Response.ok(resp.build()).build();
-    }
 
 }

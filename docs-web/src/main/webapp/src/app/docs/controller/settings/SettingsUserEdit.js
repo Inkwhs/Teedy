@@ -23,19 +23,6 @@ angular.module('docs').controller('SettingsUserEdit', function($scope, $dialog, 
     $scope.user = {}; // Very important otherwise ng-if in template will make a new scope variable
   }
 
-  //承认用户
-  $scope.approveUser = function() {
-    var username = $scope.user.username;
-    if (!confirm("确定批准用户 " + username + " 吗？")) {
-      return;
-    }
-    User.admit(username).then(function() {
-      alert("用户 " + username + " 已激活！");
-      $state.go('settings.user');
-    }, function(error) {
-      alert("激活失败: " + (error.data.message));
-    });
-  };
 
   /**
    * Update the current user.
