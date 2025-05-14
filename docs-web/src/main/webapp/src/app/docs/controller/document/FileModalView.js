@@ -19,7 +19,7 @@ angular.module('docs').controller('FileModalView', function ($http,$uibModalInst
     return $scope.file && $scope.file.mimetype.startsWith('image/');
   };
 
-// 在控制器中添加以下代码
+  // 在控制器中添加以下代码
   $scope.isEditingImage = false;
   $scope.isCropping = false;
   let canvas, ctx;
@@ -44,7 +44,6 @@ angular.module('docs').controller('FileModalView', function ($http,$uibModalInst
         canvas.width = imageElement.width;
         canvas.height = imageElement.height;
         ctx.drawImage(imageElement, 0, 0);
-        $scope.originalImage = $scope.canvas.toDataURL(); // 备份原始图片
 
         // 添加交互事件
         canvas.addEventListener('mousedown', startCrop);
@@ -118,38 +117,17 @@ angular.module('docs').controller('FileModalView', function ($http,$uibModalInst
   };
 
   $scope.saveEditedImage = function() {
-    // 将Canvas转为Blob对象
-    $scope.canvas.toBlob(function(blob) {
-      // 创建FormData并添加文件数据
+    canvas.toBlob(blob => {
       const formData = new FormData();
       formData.append('file', blob, $scope.file.name);
-      formData.append('id', $stateParams.id);
-      formData.append('previousFileId', $scope.file.id);
 
-      // 使用Upload服务上传新版本
-      Upload.upload({
-        url: '../api/file',
-        method: 'PUT',
-        data: formData,
-        headers: { 'Content-Type': undefined } // 允许浏览器自动设置Content-Type
-      }).then(response => {
-        // 更新文件信息
-        $scope.file.size = response.data.size;
-        $scope.file.create_date = new Date().getTime();
-        $scope.file.version++;
-
-        // 更新存储配额（假设新版本可能改变大小）
-        const sizeDiff = response.data.size - $scope.file.size;
-        $rootScope.userInfo.storage_current += sizeDiff;
-
-        // 关闭编辑模式并刷新
+      // 调用API保存文件
+      FileService.updateFile($stateParams.fileId, formData).then(() => {
         $scope.cancelEdit();
-        $scope.loadFiles();
-        $state.reload(); // 刷新当前视图
-      }, error => {
-        alert($translate.instant('upload_error') + error.data.message);
+        // 刷新页面显示新图片
+        $state.reload();
       });
-    }, $scope.file.mimetype); // 保持与原文件相同的MIME类型
+    }, $scope.file.mimetype);
   };
 
   $scope.cancelEdit = function() {
@@ -158,7 +136,6 @@ angular.module('docs').controller('FileModalView', function ($http,$uibModalInst
     canvas.removeEventListener('mousemove', updateCrop);
     canvas.removeEventListener('mouseup', endCrop);
   };
-
 
   // Load files
   Restangular.one('file/list').get({ id: $stateParams.id }).then(function (data) {
