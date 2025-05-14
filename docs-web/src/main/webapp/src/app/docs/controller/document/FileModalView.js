@@ -3,7 +3,7 @@
 /**
  * File modal view controller.
  */
-angular.module('docs').controller('FileModalView', function ($uibModalInstance, $scope, $state, $stateParams, $sce, Restangular, $transitions) {
+angular.module('docs').controller('FileModalView', function ($http,$uibModalInstance, $scope, $state, $stateParams, $sce, Restangular, $transitions,$uibModal) {
   var setFile = function (files) {
     // Search current file
     _.each(files, function (value) {
@@ -13,6 +13,152 @@ angular.module('docs').controller('FileModalView', function ($uibModalInstance, 
       }
     });
   };
+
+  // 新增方法：检查是否是图片文件
+  $scope.isImage = function() {
+    return $scope.file && $scope.file.mimetype.startsWith('image/');
+  };
+
+// 在控制器中添加以下代码
+  $scope.isEditingImage = false;
+  $scope.isCropping = false;
+  let canvas, ctx;
+  let imageElement;
+  let cropStartX, cropStartY;
+  let cropWidth, cropHeight;
+
+  $scope.initImageEditor = function() {
+    $scope.isEditingImage = true;
+
+    // 初始化Canvas
+    setTimeout(() => {
+      canvas = document.getElementById('imageEditorCanvas');
+      ctx = canvas.getContext('2d');
+
+      // 加载原始图片
+      imageElement = new Image();
+      imageElement.crossOrigin = "anonymous";
+      imageElement.src = `../api/file/${$stateParams.fileId}/data`;
+
+      imageElement.onload = () => {
+        canvas.width = imageElement.width;
+        canvas.height = imageElement.height;
+        ctx.drawImage(imageElement, 0, 0);
+        $scope.originalImage = $scope.canvas.toDataURL(); // 备份原始图片
+
+        // 添加交互事件
+        canvas.addEventListener('mousedown', startCrop);
+        canvas.addEventListener('mousemove', updateCrop);
+        canvas.addEventListener('mouseup', endCrop);
+      };
+    }, 0);
+  };
+
+  function startCrop(e) {
+    $scope.isCropping = true;
+    const rect = canvas.getBoundingClientRect();
+    cropStartX = e.clientX - rect.left;
+    cropStartY = e.clientY - rect.top;
+  }
+
+  function updateCrop(e) {
+    if (!$scope.isCropping) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+
+    cropWidth = currentX - cropStartX;
+    cropHeight = currentY - cropStartY;
+
+    // 重绘Canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(imageElement, 0, 0);
+
+    // 绘制裁剪框
+    ctx.strokeStyle = '#ff0000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cropStartX, cropStartY, cropWidth, cropHeight);
+  }
+
+  function endCrop() {
+    $scope.isCropping = false;
+  }
+
+  $scope.applyCrop = function() {
+    const croppedImage = ctx.getImageData(cropStartX, cropStartY, cropWidth, cropHeight);
+
+    // 创建临时Canvas保存裁剪结果
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = cropWidth;
+    tempCanvas.height = cropHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.putImageData(croppedImage, 0, 0);
+
+    // 更新主Canvas
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+    ctx.drawImage(tempCanvas, 0, 0);
+  };
+
+  $scope.rotateImage = function() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.height;
+    tempCanvas.height = canvas.width;
+
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.translate(tempCanvas.width/2, tempCanvas.height/2);
+    tempCtx.rotate(Math.PI/2);
+    tempCtx.drawImage(canvas, -canvas.width/2, -canvas.height/2);
+
+    // 更新主Canvas
+    canvas.width = tempCanvas.width;
+    canvas.height = tempCanvas.height;
+    ctx.drawImage(tempCanvas, 0, 0);
+  };
+
+  $scope.saveEditedImage = function() {
+    // 将Canvas转为Blob对象
+    $scope.canvas.toBlob(function(blob) {
+      // 创建FormData并添加文件数据
+      const formData = new FormData();
+      formData.append('file', blob, $scope.file.name);
+      formData.append('id', $stateParams.id);
+      formData.append('previousFileId', $scope.file.id);
+
+      // 使用Upload服务上传新版本
+      Upload.upload({
+        url: '../api/file',
+        method: 'PUT',
+        data: formData,
+        headers: { 'Content-Type': undefined } // 允许浏览器自动设置Content-Type
+      }).then(response => {
+        // 更新文件信息
+        $scope.file.size = response.data.size;
+        $scope.file.create_date = new Date().getTime();
+        $scope.file.version++;
+
+        // 更新存储配额（假设新版本可能改变大小）
+        const sizeDiff = response.data.size - $scope.file.size;
+        $rootScope.userInfo.storage_current += sizeDiff;
+
+        // 关闭编辑模式并刷新
+        $scope.cancelEdit();
+        $scope.loadFiles();
+        $state.reload(); // 刷新当前视图
+      }, error => {
+        alert($translate.instant('upload_error') + error.data.message);
+      });
+    }, $scope.file.mimetype); // 保持与原文件相同的MIME类型
+  };
+
+  $scope.cancelEdit = function() {
+    $scope.isEditingImage = false;
+    canvas.removeEventListener('mousedown', startCrop);
+    canvas.removeEventListener('mousemove', updateCrop);
+    canvas.removeEventListener('mouseup', endCrop);
+  };
+
 
   // Load files
   Restangular.one('file/list').get({ id: $stateParams.id }).then(function (data) {

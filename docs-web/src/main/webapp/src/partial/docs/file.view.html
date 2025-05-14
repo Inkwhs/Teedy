@@ -5,6 +5,7 @@
     </button>
   </div>
 
+
   <div class="btn-group">
     <button type="button" class="btn btn-default"
             ng-style="{ 'visibility': previousFile() ? 'visible' : 'hidden' }"
@@ -20,6 +21,21 @@
       &nbsp;
     </button>
   </div>
+
+  <!-- 在原有HTML基础上添加以下canvas相关结构 -->
+  <div ng-if="isEditingImage" class="image-editor-container">
+    <div class="image-editor-toolbar">
+      <button class="btn btn-primary" ng-click="applyCrop()">裁剪</button>
+      <button class="btn btn-primary" ng-click="rotateImage()">旋转</button>
+<!--      <button class="btn btn-success" ng-click="saveEditedImage()">保存</button>-->
+      <button class="btn btn-danger" ng-click="cancelEdit()">取消</button>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="imageEditorCanvas"></canvas>
+      <div class="crop-overlay" ng-show="isCropping"></div>
+    </div>
+  </div>
   
   <div class="btn-group pull-right">
     <button type="button" class="btn btn-default" uib-tooltip="Print this file" tooltip-append-to-body="true" ng-click="printFile()">
@@ -31,7 +47,20 @@
     <button type="button" class="btn btn-default" uib-tooltip="Show text content" tooltip-append-to-body="true" ng-click="openFileContent()">
       <span class="fas fa-eye"></span>
     </button>
+    <!-- new edit button -->
+    <button type="button" class="btn btn-default"
+            uib-tooltip="edit this image"
+            tooltip-append-to-body="true"
+            ng-click="initImageEditor()"
+            ng-show="isImage()">
+      <span class="fas fa-edit"></span>
+    </button>
   </div>
+</div>
+
+<!-- to show mimetype -->
+<div style="position: absolute; top: 0; left: 0; background: white; padding: 5px;">
+  Mimetype: {{file.mimetype}}
 </div>
 
 <div class="text-center" style="position: relative;" ng-if="$stateParams.fileId">
